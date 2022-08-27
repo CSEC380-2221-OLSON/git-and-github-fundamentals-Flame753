@@ -92,9 +92,15 @@ def main():
     domain, url, depth= get_command_args()
     orig_urls = get_urls_a_tags(url)
     no_dup_urls = remove_duplicates(orig_urls)
-    url_dict = filtering_urls(no_dup_urls)
-    pprint(remove_non_matching_domain(url_dict.get(UrlPrefix.URL.name), domain))
-    # pprint(url_dict)
+    url_dict = filtering_urls(no_dup_urls)  # Splitting up urls and extesions
+    urls_with_desired_domain = remove_non_matching_domain(url_dict.get(UrlPrefix.URL.name), domain)
+
+    extensions = [prefix_remover(x, f"{domain}/") for x in urls_with_desired_domain]  # Converting urls into extension
+    extensions.extend(url_dict.get(UrlPrefix.EXTENSIONS.name))  # Combining previous extensions with new extensions
+    all_extensions = remove_duplicates(extensions)  # Removing any extension that came from converting urls into extensions
+
+    pprint(len(extensions))
+    pprint(all_extensions)
 
 
 if __name__ == "__main__":

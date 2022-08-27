@@ -3,7 +3,6 @@
 
 # -------------------------------------------------------------------------------------------
 
-from lib2to3.pgen2.token import DOUBLESLASH
 import sys
 from lxml import html
 import requests
@@ -88,8 +87,7 @@ def remove_non_matching_domain(urls: list[str], domain: str) -> list[str]:
 
 # -------------------------------------------------------------------------------------------
 
-def main():
-    domain, url, depth= get_command_args()
+def cralwer(domain, url, depth=0):
     orig_urls = get_urls_a_tags(url)
     no_dup_urls = remove_duplicates(orig_urls)
     url_dict = filtering_urls(no_dup_urls)  # Splitting up urls and extesions
@@ -99,8 +97,22 @@ def main():
     extensions.extend(url_dict.get(UrlPrefix.EXTENSIONS.name))  # Combining previous extensions with new extensions
     all_extensions = remove_duplicates(extensions)  # Removing any extension that came from converting urls into extensions
 
-    pprint(len(extensions))
-    pprint(all_extensions)
+    if depth == 0:
+        return all_extensions
+    else:
+        for extension in all_extensions:
+            new_domain = f"{domain}/{extension}"
+            new_url = f"{url}/{extension}"
+            
+            return cralwer(new_domain, new_url, depth-1)
+
+def main():
+    domain, url, depth= get_command_args()
+    output = cralwer(domain, url, int(depth))
+    pprint(len(output))
+
+    # pprint(len(extensions))
+    # pprint(all_extensions)
 
 
 if __name__ == "__main__":

@@ -76,7 +76,7 @@ def write_resources(filepath):
 
 def main():
     domain, url, depth= get_command_args()
-    get_resources(domain, url, int(depth))
+    get_resources(domain, url, int(depth)+1)
     write_resources('urls-gathered')
     
 

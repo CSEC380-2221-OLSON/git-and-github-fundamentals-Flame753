@@ -1,11 +1,11 @@
 import sys
 from urllib.parse import urlparse
-import urllib.request
 from bs4 import BeautifulSoup as bs
 from pprint import pprint
-import re
 import requests
 import time
+import os
+import re
 
 
 # python spider.py www.rit.edu https://www.rit.edu/ 1
@@ -55,17 +55,35 @@ def get_resources(domain, url, depth=0) -> set[str]:
     if depth == 0:
         return False
 
-    resp = requests.get(url)
 
-    if resp.status_code == 200:
-
-        tags = {'a': 'href', 'link': 'href', 'img': 'src', 'script': 'src', 'iframe': 'src', 'object': 'data' }
-        tree = bs(resp.text, 'html.parser')
-        for tag, value in tags.items():
-            for link in tree.find_all(tag):
-                url_path = link.get(value)
-                if url_path:  # Preventing None values to be added
-                    get_resources(domain, create_url(urldata.scheme, domain, urldata.path, url_path), depth - 1)
+    # if we have a html, css, or js file, then down the rabbit hole we go
+    extension = os.path.splitext(urldata.path)[1]
+    if extension in ['', '.html', '.css', '.js']:
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            if extension in ['', '.html']:
+                tags = {'a': 'href', 'link': 'href', 'img': 'src', 'script': 'src', 'iframe': 'src', 'object': 'data' }
+                tree = bs(resp.text, 'html.parser')
+                for tag, value in tags.items():
+                    for link in tree.find_all(tag):
+                        url_path = link.get(value)
+                        if url_path:  # Preventing None values to be added
+                            url = create_url(urldata.scheme, domain, urldata.path, url_path)
+                            if url.startswith('http'):
+                                get_resources(domain, url, depth - 1)
+            elif extension == '.css':
+                print('Parse CSS')
+                print(resp.text)
+            elif extension == '.js':
+                print('Parse Javascript')
+                pass
+            else:
+                print('Something went wrong, we shouldnt be here')
+        else:
+            print(f'Something went wrong getting {url} ({resp.status_code})')
+    else:
+        print(f'Skipping {url}')
+        return False
 
 
 def write_resources(filepath):

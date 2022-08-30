@@ -38,6 +38,11 @@ def full_url(scheme, domain, current_path, url):
             url = f'{scheme}://{domain}{current_path}/{url}'
     return url
 
+def parse_css_js_urls(domain, depth, content):
+    js_urls = re.findall(f'{domain}[^\"]*', content)
+    for js_url in js_urls:
+        get_resource(domain, f"https//{js_url}", depth - 1)
+
 def get_resource(domain, url, depth=0) -> set[str]:
     urldata = urlparse(url)
 
@@ -73,9 +78,10 @@ def get_resource(domain, url, depth=0) -> set[str]:
                         get_resource(domain, url, depth - 1)
             elif extension == '.css':
                 print('Parse CSS')
-                # print(resp.text)
+                parse_css_js_urls(domain, depth, resp.text)
             elif extension == '.js':
                 print('Parse Javascript')
+                parse_css_js_urls(domain, depth, resp.text)
             else:
                 print('Something went wrong, we shouldnt be here')
         else:

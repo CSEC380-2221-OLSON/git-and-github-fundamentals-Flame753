@@ -5,6 +5,7 @@ from pprint import pprint
 import requests
 import time
 import os
+import soupsieve
 import re
 
 
@@ -22,7 +23,7 @@ def get_command_args() -> list[str]:
     # Assuming the first 3 inputs was enter correctly. NO sanitaion was done! 
     return sys.argv[1:4]
 
-def create_url(scheme, domain, current_path, url):
+def full_url(scheme, domain, current_path, url):
     urldata = urlparse(url)
 
     if urldata.scheme not in ['', 'http', 'https']:
@@ -37,7 +38,7 @@ def create_url(scheme, domain, current_path, url):
             url = f'{scheme}://{domain}{current_path}/{url}'
     return url
 
-def get_resources(domain, url, depth=0) -> set[str]:
+def get_resource(domain, url, depth=0) -> set[str]:
     urldata = urlparse(url)
 
     # if domain doesnt match then skip
@@ -62,21 +63,19 @@ def get_resources(domain, url, depth=0) -> set[str]:
         resp = requests.get(url)
         if resp.status_code == 200:
             if extension in ['', '.html']:
-                tags = {'a': 'href', 'link': 'href', 'img': 'src', 'script': 'src', 'iframe': 'src', 'object': 'data' }
-                tree = bs(resp.text, 'html.parser')
-                for tag, value in tags.items():
-                    for link in tree.find_all(tag):
-                        url_path = link.get(value)
-                        if url_path:  # Preventing None values to be added
-                            url = create_url(urldata.scheme, domain, urldata.path, url_path)
-                            if url.startswith('http'):
-                                get_resources(domain, url, depth - 1)
+                selectors = ['a[href]', 'link[href]', 'img[src]', 'script[src]', 'iframe[src]', 'object[data]']
+                soup = bs(resp.text, 'html.parser')
+                matches = soupsieve.select(','.join(selectors), soup)
+                for match in matches:
+                    match_url = match.get('href', match.get('src', match.get('data')))
+                    url = full_url(urldata.scheme, domain, urldata.path, match_url)
+                    if url.startswith('http'):
+                        get_resource(domain, url, depth - 1)
             elif extension == '.css':
                 print('Parse CSS')
-                print(resp.text)
+                # print(resp.text)
             elif extension == '.js':
                 print('Parse Javascript')
-                pass
             else:
                 print('Something went wrong, we shouldnt be here')
         else:
@@ -94,7 +93,7 @@ def write_resources(filepath):
 
 def main():
     domain, url, depth= get_command_args()
-    get_resources(domain, url, int(depth)+1)
+    get_resource(domain, url, int(depth)+1)
     write_resources('urls-gathered')
     
 

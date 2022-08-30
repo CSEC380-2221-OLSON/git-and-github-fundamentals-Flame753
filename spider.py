@@ -12,6 +12,7 @@ import re
 # python spider.py www.rit.edu https://www.rit.edu/ 1
 # python spider.py www.w3schools.com/ https://www.w3schools.com/ 1
 # python spider.py github.com https://github.com/ 1
+# python spider.py www.pythontutorial.net https://www.pythontutorial.net 1
 # -------------------------------------------------------------------------------------------
 urls = []
 
@@ -38,11 +39,12 @@ def full_url(scheme, domain, current_path, url):
             url = f'{scheme}://{domain}{current_path}/{url}'
     return url
 
-def parse_css_js_urls(domain, depth, content):
-    # js_urls = re.findall(f'{domain}[^\"]*', content)  # Greedy Version
-    js_urls = re.findall(f'{domain}.*?"', content)  # non Greedy Version
-    for js_url in js_urls:
-        get_resource(domain, f"https//{js_url}", depth - 1)
+# OLD function
+# def parse_css_js_urls(domain, depth, content):
+#     # js_urls = re.findall(f'{domain}[^\"]*', content)  # Greedy Version
+#     js_urls = re.findall(f'{domain}.*?["`\']', content)  # non Greedy Version
+#     for js_url in js_urls:
+#         get_resource(domain, f"https//{js_url}", depth - 1)
 
 def get_resource(domain, url, depth=0) -> set[str]:
     urldata = urlparse(url)
@@ -79,10 +81,14 @@ def get_resource(domain, url, depth=0) -> set[str]:
                         get_resource(domain, url, depth - 1)
             elif extension == '.css':
                 print('Parse CSS')
-                parse_css_js_urls(domain, depth, resp.text)
+                css_urls = re.findall(f'url\((.*?)\)', resp.text)
+                for css_url in css_urls:
+                    get_resource(domain, full_url(urldata.scheme, domain, urldata.path, css_url), depth - 1)
             elif extension == '.js':
                 print('Parse Javascript')
-                parse_css_js_urls(domain, depth, resp.text)
+                js_urls = re.findall(f'[\'"]((https?://{domain})?/.*?)[\'"]', resp.text)
+                for js_url in js_urls:
+                    get_resource(domain, f"{js_url}", depth - 1)
             else:
                 print('Something went wrong, we shouldnt be here')
         else:

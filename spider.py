@@ -39,7 +39,8 @@ def full_url(scheme, domain, current_path, url):
     return url
 
 def parse_css_js_urls(domain, depth, content):
-    js_urls = re.findall(f'{domain}[^\"]*', content)
+    # js_urls = re.findall(f'{domain}[^\"]*', content)  # Greedy Version
+    js_urls = re.findall(f'{domain}.*?"', content)  # non Greedy Version
     for js_url in js_urls:
         get_resource(domain, f"https//{js_url}", depth - 1)
 
